@@ -1,0 +1,35 @@
+# Publish n8n community node releases from GitHub Actions.
+# n8n requires provenance for community-node publishing. For the first release,
+# use a granular npm token in NPM_TOKEN if the package does not yet exist on npm.
+# After 0.1.0 exists, configure npm Trusted Publishing for this workflow and
+# remove the repository secret.
+name: Publish
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Publish release
+        run: |
+          [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          npm run release
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
